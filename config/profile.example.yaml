@@ -1,0 +1,36 @@
+name: "Your Name"
+summary: "Software engineer looking for roles that match my background."
+targetTitles:
+  - "Software Engineer"
+  - "Backend Engineer"
+  - "Full Stack Engineer"
+includeKeywords:
+  - "typescript"
+  - "node"
+  - "backend"
+  - "api"
+excludeKeywords:
+  - "sales"
+  - "recruiter"
+seniority:
+  - "entry"
+  - "mid"
+locations:
+  allowed:
+    - "remote"
+    - "san francisco"
+    - "new york"
+  remoteOnly: false
+compensation:
+  minimumBaseUsd: 150000
+preferences:
+  employmentTypes:
+    include:
+      - "full-time"
+    exclude:
+      - "contract"
+      - "internship"
+  excludedCompanies: []
+  weightingHints:
+    - "Prefer backend-heavy product engineering roles."
+    - "Avoid recruiting agencies or obvious resume farming posts."

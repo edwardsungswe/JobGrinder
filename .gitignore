@@ -134,3 +134,16 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# JobGrinder local data and browser state
+.playwright-profile/
+playwright-downloads/
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+output/*
+!output/.gitkeep
+config/profile.yaml
+!config/profile.example.yaml
+config/profile.local.yaml
