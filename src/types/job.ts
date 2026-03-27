@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-export const recommendationSchema = z.enum(["yes", "maybe", "no"]);
-
 export const jobRecordSchema = z.object({
   sourceRowNumber: z.number().int().positive(),
   raw: z.record(z.string(), z.string()),
@@ -39,18 +37,18 @@ export const scoringJobRecordSchema = z.object({
   fields: z.record(z.string(), z.string()),
 });
 
-export const scoredJobRecordSchema = scoringJobRecordSchema.extend({
-  deterministicDecision: recommendationSchema,
-  deterministicReasons: z.array(z.string()),
-  score: z.number().min(0).max(100),
+export const deterministicDecisionSchema = z.enum(["yes", "maybe", "no"]);
+
+export const filteredJobRecordSchema = normalizedJobRecordSchema.extend({
+  keep: z.boolean(),
   rationale: z.string(),
-  matchingFactors: z.array(z.string()),
   redFlags: z.array(z.string()),
-  recommendation: recommendationSchema,
+  deterministicDecision: deterministicDecisionSchema,
+  deterministicReasons: z.array(z.string()),
   provider: z.string(),
 });
 
 export type JobRecord = z.infer<typeof jobRecordSchema>;
 export type NormalizedJobRecord = z.infer<typeof normalizedJobRecordSchema>;
 export type ScoringJobRecord = z.infer<typeof scoringJobRecordSchema>;
-export type ScoredJobRecord = z.infer<typeof scoredJobRecordSchema>;
+export type FilteredJobRecord = z.infer<typeof filteredJobRecordSchema>;

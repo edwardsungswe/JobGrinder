@@ -1,16 +1,16 @@
-import type { ScoredJobRecord } from "../types/job.js";
+import type { FilteredJobRecord } from "../types/job.js";
 
-export function printSummary(scoredJobs: ScoredJobRecord[]): void {
-  const topJobs = scoredJobs.filter((job) => job.recommendation === "yes").slice(0, 10);
+export function printSummary(scoredJobs: FilteredJobRecord[]): void {
+  const topJobs = scoredJobs.filter((job) => job.keep);
 
   console.log("");
-  console.log("Top jobs to apply to:");
+  console.log("Jobs worth applying to:");
   if (topJobs.length === 0) {
-    console.log("- No strong matches today.");
+    console.log("- No jobs worth applying to.");
     return;
   }
 
   for (const job of topJobs) {
-    console.log(`- [${job.score}] ${job.title} at ${job.company}${job.url ? ` - ${job.url}` : ""}`);
+    console.log(`- ${job["Position Title"]} at ${job.Company}${job.Apply ? ` - ${job.Apply}` : ""}`);
   }
 }

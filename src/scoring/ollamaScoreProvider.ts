@@ -1,7 +1,7 @@
 import type { AppEnv } from "../types/config.js";
-import type { ScoringJobRecord } from "../types/job.js";
+import type { NormalizedJobRecord } from "../types/job.js";
 import type { Profile } from "../types/profile.js";
-import { providerScoreSchema, type ProviderScore, type ScoreProvider } from "./scoreProvider.js";
+import { providerFilterSchema, type ProviderFilter, type ScoreProvider } from "./scoreProvider.js";
 
 type OllamaGenerateResponse = {
   response?: string;
@@ -9,24 +9,28 @@ type OllamaGenerateResponse = {
   done?: boolean;
 };
 
-export function buildOllamaPrompt(job: ScoringJobRecord, profile: Profile): string {
+export function buildOllamaPrompt(job: NormalizedJobRecord, profile: Profile): string {
   return [
-    "Score this job for one candidate.",
+    "Decide whether this job is worth applying to for one candidate.",
     "Return JSON only.",
-    'JSON keys: score, rationale, matchingFactors, redFlags, recommendation.',
-    'recommendation must be one of "yes", "maybe", "no".',
-    "score must be an integer from 0 to 100.",
-    "matchingFactors and redFlags must be arrays of short strings.",
+    'JSON keys: keep, rationale, redFlags.',
+    "keep must be true or false.",
+    "redFlags must be an array of short strings.",
+    "Use the candidate profile as the source of truth for fit.",
+    "Focus especially on company quality/reputation and whether the qualifications allow a master's student to apply.",
+    "If the job appears undergraduate-only and does not look open to master's students, set keep to false.",
+    "If pay is missing or below the preferred threshold, you may still set keep to true if the company is strong enough and the role still looks worth applying to.",
+    "Do not rank jobs. Only decide whether to keep or drop this one job.",
     `Candidate profile: ${JSON.stringify(profile)}`,
     `Job: ${JSON.stringify(job)}`,
   ].join("\n");
 }
 
-export function parseOllamaResponseText(text: string): ProviderScore {
+export function parseOllamaResponseText(text: string): ProviderFilter {
   const trimmed = text.trim();
   const fencedMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
   const candidate = fencedMatch?.[1]?.trim() ?? trimmed;
-  return providerScoreSchema.parse(JSON.parse(candidate));
+  return providerFilterSchema.parse(JSON.parse(candidate));
 }
 
 async function readResponseJson(response: Response): Promise<OllamaGenerateResponse> {
@@ -44,7 +48,7 @@ export class OllamaScoreProvider implements ScoreProvider {
     },
   ) {}
 
-  async score(job: ScoringJobRecord, profile: Profile): Promise<ProviderScore> {
+  async score(job: NormalizedJobRecord, profile: Profile): Promise<ProviderFilter> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.options.timeoutMs);
 

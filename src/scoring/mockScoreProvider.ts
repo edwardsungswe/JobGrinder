@@ -1,6 +1,6 @@
-import type { ScoringJobRecord } from "../types/job.js";
+import type { NormalizedJobRecord } from "../types/job.js";
 import type { Profile } from "../types/profile.js";
-import { providerScoreSchema, type ProviderScore, type ScoreProvider } from "./scoreProvider.js";
+import { providerFilterSchema, type ProviderFilter, type ScoreProvider } from "./scoreProvider.js";
 
 function countMatches(text: string, values: string[]): string[] {
   const lowered = text.toLowerCase();
@@ -10,23 +10,25 @@ function countMatches(text: string, values: string[]): string[] {
 export class MockScoreProvider implements ScoreProvider {
   readonly name = "mock";
 
-  async score(job: ScoringJobRecord, profile: Profile): Promise<ProviderScore> {
-    const haystack = [job.title, job.description, job.location, job.seniority, job.employmentType].join(" ");
-    const titleMatches = countMatches(job.title, profile.targetTitles);
+  async score(job: NormalizedJobRecord, profile: Profile): Promise<ProviderFilter> {
+    const haystack = [
+      job["Position Title"],
+      job.Qualifications,
+      job.Location,
+      job["Work Model"],
+      job.Company,
+    ].join(" ");
+    const titleMatches = countMatches(job["Position Title"], profile.targetTitles);
     const keywordMatches = countMatches(haystack, profile.includeKeywords);
     const penalties = countMatches(haystack, profile.excludeKeywords);
-    const rawScore = 45 + titleMatches.length * 15 + keywordMatches.length * 8 - penalties.length * 20;
-    const score = Math.max(0, Math.min(100, rawScore));
+    const keep = titleMatches.length > 0 || (keywordMatches.length > 0 && penalties.length === 0);
 
-    return providerScoreSchema.parse({
-      score,
-      rationale:
-        score >= 75
-          ? "Strong profile overlap based on target title and preferred keywords."
-          : "Moderate overlap. Review manually before applying.",
-      matchingFactors: [...titleMatches, ...keywordMatches].slice(0, 5),
+    return providerFilterSchema.parse({
+      keep,
+      rationale: keep
+        ? "Job appears aligned with target title or preferred keywords."
+        : "Job does not appear aligned enough to keep.",
       redFlags: penalties,
-      recommendation: score >= 75 ? "yes" : score >= 55 ? "maybe" : "no",
     });
   }
 }

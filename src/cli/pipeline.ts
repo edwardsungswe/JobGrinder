@@ -2,14 +2,14 @@ import { readFile } from "node:fs/promises";
 import { exportAirtableCsv } from "../browser/exportAirtableCsv.js";
 import { findLatestCsv } from "../ingest/latestCsv.js";
 import { findLatestProcessedFile } from "../ingest/latestProcessedFile.js";
-import { normalizeJobs, toScoringJobRecord } from "../ingest/normalizeJobs.js";
+import { normalizeJobs } from "../ingest/normalizeJobs.js";
 import { parseCsvFile } from "../ingest/parseCsv.js";
 import { saveNormalizedJobs } from "../ingest/saveNormalizedJobs.js";
 import { generateReport } from "../reporting/generateReport.js";
 import { printSummary } from "../reporting/printSummary.js";
 import { OllamaScoreProvider } from "../scoring/ollamaScoreProvider.js";
 import { scoreJobs } from "../scoring/scoreJobs.js";
-import { normalizedJobRecordSchema, scoredJobRecordSchema, type NormalizedJobRecord, type ScoredJobRecord } from "../types/job.js";
+import { filteredJobRecordSchema, normalizedJobRecordSchema, type FilteredJobRecord, type NormalizedJobRecord } from "../types/job.js";
 import { localDateStamp } from "../utils/date.js";
 
 export async function runExport(context: Awaited<ReturnType<typeof import("./context.js").createContext>>): Promise<string> {
@@ -44,11 +44,10 @@ export async function runNormalize(
 export async function runScore(
   context: Awaited<ReturnType<typeof import("./context.js").createContext>>,
   filePath?: string,
-): Promise<{ scoredJobs: ScoredJobRecord[]; outputPath: string; sourcePath: string }> {
+): Promise<{ scoredJobs: FilteredJobRecord[]; outputPath: string; sourcePath: string }> {
   const sourcePath = filePath ?? (await findLatestProcessedFile(context.processedDir, "-normalized-jobs.json"));
   const raw = await readFile(sourcePath, "utf8");
   const normalizedJobs = normalizedJobRecordSchema.array().parse(JSON.parse(raw));
-  const scoringJobs = normalizedJobs.map((job, index) => toScoringJobRecord(job, index + 1));
   const provider = new OllamaScoreProvider({
     baseUrl: context.env.JOBGRINDER_OLLAMA_BASE_URL,
     model: context.env.JOBGRINDER_OLLAMA_MODEL,
@@ -57,14 +56,14 @@ export async function runScore(
 
   context.logger.info("Scoring jobs", {
     sourcePath,
-    jobCount: scoringJobs.length,
+    jobCount: normalizedJobs.length,
     provider: provider.name,
     baseUrl: context.env.JOBGRINDER_OLLAMA_BASE_URL,
     model: context.env.JOBGRINDER_OLLAMA_MODEL,
   });
 
   const result = await scoreJobs({
-    jobs: scoringJobs,
+    jobs: normalizedJobs,
     profile: context.profile,
     provider,
     processedDir: context.processedDir,
@@ -77,10 +76,10 @@ export async function runScore(
 export async function runReport(
   context: Awaited<ReturnType<typeof import("./context.js").createContext>>,
   scoredPath?: string,
-): Promise<{ reportPath: string; markdown: string; scoredJobs: ScoredJobRecord[] }> {
-  const sourcePath = scoredPath ?? `${context.processedDir}/${localDateStamp()}-scored-jobs.json`;
+): Promise<{ reportPath: string; markdown: string; scoredJobs: FilteredJobRecord[] }> {
+  const sourcePath = scoredPath ?? `${context.processedDir}/${localDateStamp()}-filtered-jobs.json`;
   const raw = await readFile(sourcePath, "utf8");
-  const scoredJobs = scoredJobRecordSchema.array().parse(JSON.parse(raw));
+  const scoredJobs = filteredJobRecordSchema.array().parse(JSON.parse(raw));
   const report = await generateReport({
     scoredJobs,
     outputDir: context.outputDir,

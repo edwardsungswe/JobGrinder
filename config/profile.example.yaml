@@ -23,6 +23,15 @@ locations:
   remoteOnly: false
 compensation:
   minimumBaseUsd: 150000
+  minimumHourlyUsd: 30
+  reputableCompaniesOnMissingCompensation:
+    - "Google"
+    - "Microsoft"
+    - "Meta"
+    - "Amazon"
+    - "Apple"
+    - "NVIDIA"
+    - "OpenAI"
 preferences:
   employmentTypes:
     include:

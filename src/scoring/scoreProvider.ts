@@ -1,18 +1,16 @@
 import { z } from "zod";
-import type { ScoringJobRecord } from "../types/job.js";
+import type { NormalizedJobRecord } from "../types/job.js";
 import type { Profile } from "../types/profile.js";
 
-export const providerScoreSchema = z.object({
-  score: z.number().min(0).max(100),
+export const providerFilterSchema = z.object({
+  keep: z.boolean(),
   rationale: z.string().min(1),
-  matchingFactors: z.array(z.string()),
   redFlags: z.array(z.string()),
-  recommendation: z.enum(["yes", "maybe", "no"]),
 });
 
-export type ProviderScore = z.infer<typeof providerScoreSchema>;
+export type ProviderFilter = z.infer<typeof providerFilterSchema>;
 
 export interface ScoreProvider {
   readonly name: string;
-  score(job: ScoringJobRecord, profile: Profile): Promise<ProviderScore>;
+  score(job: NormalizedJobRecord, profile: Profile): Promise<ProviderFilter>;
 }

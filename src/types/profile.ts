@@ -3,7 +3,7 @@ import { z } from "zod";
 export const profileSchema = z.object({
   name: z.string().min(1),
   summary: z.string().min(1),
-  targetTitles: z.array(z.string().min(1)).min(1),
+  targetTitles: z.array(z.string().min(1)).default([]),
   includeKeywords: z.array(z.string().min(1)).default([]),
   excludeKeywords: z.array(z.string().min(1)).default([]),
   seniority: z.array(z.string().min(1)).default([]),
@@ -13,6 +13,8 @@ export const profileSchema = z.object({
   }),
   compensation: z.object({
     minimumBaseUsd: z.number().int().nonnegative().nullable().default(null),
+    minimumHourlyUsd: z.number().nonnegative().nullable().default(null),
+    reputableCompaniesOnMissingCompensation: z.array(z.string().min(1)).default([]),
   }),
   preferences: z.object({
     employmentTypes: z.object({

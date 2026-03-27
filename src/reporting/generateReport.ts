@@ -1,18 +1,17 @@
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { ScoredJobRecord } from "../types/job.js";
+import type { FilteredJobRecord } from "../types/job.js";
 import { localDateStamp } from "../utils/date.js";
 import { ensureDir } from "../utils/fs.js";
 
-function renderJob(job: ScoredJobRecord): string {
+function renderJob(job: FilteredJobRecord): string {
   const lines = [
-    `- **${job.score}** | ${job.title} at ${job.company}`,
-    `  Recommendation: ${job.recommendation}`,
+    `- ${job["Position Title"]} at ${job.Company}`,
     `  Why: ${job.rationale}`,
   ];
 
-  if (job.url) {
-    lines.push(`  Link: ${job.url}`);
+  if (job.Apply) {
+    lines.push(`  Link: ${job.Apply}`);
   }
 
   if (job.redFlags.length > 0) {
@@ -23,26 +22,22 @@ function renderJob(job: ScoredJobRecord): string {
 }
 
 export async function generateReport(params: {
-  scoredJobs: ScoredJobRecord[];
+  scoredJobs: FilteredJobRecord[];
   outputDir: string;
 }): Promise<{ reportPath: string; markdown: string }> {
-  const yesJobs = params.scoredJobs.filter((job) => job.recommendation === "yes");
-  const maybeJobs = params.scoredJobs.filter((job) => job.recommendation === "maybe");
-  const noJobs = params.scoredJobs.filter((job) => job.recommendation === "no");
+  const keepJobs = params.scoredJobs.filter((job) => job.keep);
+  const dropJobs = params.scoredJobs.filter((job) => !job.keep);
 
   const markdown = [
     `# JobGrinder Report - ${localDateStamp()}`,
     "",
-    `Top jobs to apply to now: ${yesJobs.length}`,
+    `Jobs worth applying to: ${keepJobs.length}`,
     "",
-    "## Apply Now",
-    yesJobs.length > 0 ? yesJobs.map(renderJob).join("\n\n") : "- No strong matches today.",
+    "## Apply",
+    keepJobs.length > 0 ? keepJobs.map(renderJob).join("\n\n") : "- No jobs worth applying to.",
     "",
-    "## Maybe Later",
-    maybeJobs.length > 0 ? maybeJobs.map(renderJob).join("\n\n") : "- No maybe jobs.",
-    "",
-    "## Rejected",
-    noJobs.length > 0 ? noJobs.map(renderJob).join("\n\n") : "- No rejected jobs.",
+    "## Filtered Out",
+    dropJobs.length > 0 ? dropJobs.map(renderJob).join("\n\n") : "- No filtered jobs.",
     "",
   ].join("\n");
 

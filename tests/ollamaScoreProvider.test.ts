@@ -4,24 +4,22 @@ import {
   buildOllamaPrompt,
   parseOllamaResponseText,
 } from "../src/scoring/ollamaScoreProvider.js";
-import type { ScoringJobRecord } from "../src/types/job.js";
+import type { NormalizedJobRecord } from "../src/types/job.js";
 import type { Profile } from "../src/types/profile.js";
 
-const job: ScoringJobRecord = {
-  sourceRowNumber: 1,
-  sourceId: "job-1",
-  title: "Backend Engineer",
-  company: "Acme",
-  location: "Remote",
-  url: "https://example.com/jobs/1",
-  description: "Build Node and TypeScript APIs.",
-  workModel: "Remote",
-  employmentType: "full-time",
-  seniority: "senior",
-  compensationText: "$180,000",
-  compensationBaseUsd: 180000,
-  postedAt: "2026-03-26",
-  fields: {},
+const job: NormalizedJobRecord = {
+  "Position Title": "Backend Engineer",
+  Date: "2026-03-26",
+  Apply: "https://example.com/jobs/1",
+  "Work Model": "Remote",
+  Location: "Remote",
+  Company: "Acme",
+  Salary: "$180,000",
+  "Hire Time": "full-time",
+  "Graduate Time": "",
+  "Company Industry": "Software",
+  "Company Size": "51-200",
+  Qualifications: "Build Node and TypeScript APIs.",
 };
 
 const profile: Profile = {
@@ -37,6 +35,8 @@ const profile: Profile = {
   },
   compensation: {
     minimumBaseUsd: 150000,
+    minimumHourlyUsd: 30,
+    reputableCompaniesOnMissingCompensation: ["Google"],
   },
   preferences: {
     employmentTypes: {
@@ -58,26 +58,22 @@ describe("ollama prompt helpers", () => {
     const prompt = buildOllamaPrompt(job, profile);
     expect(prompt).toContain("Return JSON only.");
     expect(prompt).toContain('"targetTitles":["Backend Engineer"]');
-    expect(prompt).toContain('"title":"Backend Engineer"');
+    expect(prompt).toContain('"Position Title":"Backend Engineer"');
   });
 
   it("parses valid JSON response text", () => {
     expect(
       parseOllamaResponseText(
         JSON.stringify({
-          score: 91,
+          keep: true,
           rationale: "Strong match.",
-          matchingFactors: ["backend"],
           redFlags: [],
-          recommendation: "yes",
         }),
       ),
     ).toEqual({
-      score: 91,
+      keep: true,
       rationale: "Strong match.",
-      matchingFactors: ["backend"],
       redFlags: [],
-      recommendation: "yes",
     });
   });
 
@@ -89,9 +85,7 @@ describe("ollama prompt helpers", () => {
     expect(() =>
       parseOllamaResponseText(
         JSON.stringify({
-          score: 42,
-          rationale: "Missing recommendation.",
-          matchingFactors: [],
+          rationale: "Missing keep.",
           redFlags: [],
         }),
       ),
@@ -113,11 +107,9 @@ describe("OllamaScoreProvider", () => {
         new Response(
           JSON.stringify({
             response: JSON.stringify({
-              score: 84,
+              keep: true,
               rationale: "Recovered on retry.",
-              matchingFactors: ["typescript"],
               redFlags: [],
-              recommendation: "yes",
             }),
           }),
           { status: 200, headers: { "content-type": "application/json" } },
@@ -133,7 +125,7 @@ describe("OllamaScoreProvider", () => {
     });
 
     const result = await provider.score(job, profile);
-    expect(result.recommendation).toBe("yes");
+    expect(result.keep).toBe(true);
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
